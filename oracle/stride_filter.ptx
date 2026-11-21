@@ -1,0 +1,25 @@
+// l2 stride filter: evicts unshared lines on power-of-two hugepage strides
+.visible .entry l2_stride_filter(
+    .param .u64 base,
+    .param .u32 lines,
+    .param .u32 stride
+)
+{
+    .reg .b64 %rd<8>;
+    .reg .b32 %r<12>;
+
+    ld.param.u64  %rd1, [base];
+    ld.param.u32  %r1,  [lines];
+    ld.param.u32  %r2,  [stride];
+
+    mov.u32       %r3,  %tid.x;
+    mad.lo.u32    %r4,  %r3, %r2, 0;
+    cvt.u64.u32   %rd2, %r4;
+    add.u64       %rd3, %rd1, %rd2;
+
+    ld.global.b32 %r5,  [%rd3];
+    setp.eq.u32   %p1,  %r5, 0;
+    @%p1 st.global.b32  [%rd3], 1;
+
+    ret;
+}
